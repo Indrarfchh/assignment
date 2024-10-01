@@ -130,7 +130,7 @@ const App = () => {
           Export to Excel
         </button>
       </div>
-        <div className='my-4 font-bold'>Project Name : HRMS</div>
+        <div className='my-4 font'>Project Name : HRMS</div>
       <table className="table-auto border-collapse border border-black w-full">
         <thead>
           <tr>
