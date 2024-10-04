@@ -5,20 +5,15 @@ import { MdCancelPresentation } from 'react-icons/md';
 import { AiOutlineHome } from "react-icons/ai";
 
 const defaultFields = [
-  { name: 'Employee ID', type: 'text', required: true, min: 1, max: 20, pattern: /^[a-zA-Z0-9]*$/ },
-  { name: 'Employee Name', type: 'text', required: true, min: 1, max: 20, pattern: /^[a-zA-Z\s]*$/ },
-  { name: 'Employee Designation', type: 'text', required: true, min: 1, max: 20, pattern: /^[a-zA-Z\s]*$/ },
-  { name: 'Project Manager Name', type: 'text', required: true, min: 1, max: 20, pattern: /^[a-zA-Z\s]*$/ },
-  { name: 'Project Name', type: 'text', required: true, min: 1, max: 20, pattern: /^[a-zA-Z0-9\s]*$/ },
-  { name: 'Project Code', type: 'text', required: true, min: 1, max: 20, pattern: /^[a-zA-Z0-9]*$/ },
-  { name: 'Project Manager Emp Id', type: 'text', required: true, min: 1, max: 20, pattern: /^[a-zA-Z0-9]*$/ },
+  { name: 'Employee ID', type: 'text', required: true, min: 1, max: 20, pattern: /^[^\s][a-zA-Z0-9]*$/ },
+  { name: 'Employee Name', type: 'text', required: true, min: 1, max: 20, pattern: /^[^\s][a-zA-Z\s]*$/ },
+  { name: 'Employee Designation', type: 'text', required: true, min: 1, max: 20, pattern: /^[^\s][a-zA-Z0-9\-/\s]*$/ },
+  { name: 'Project Code', type: 'text', required: true, min: 1, max: 20, pattern: /^[^\s][a-zA-Z0-9]*$/ },
   { name: 'Start Date', type: 'date', required: true },
   { name: 'End Date', type: 'date', required: true },
-  { name: 'Capacity', type: 'text', required: true, min: 1, max: 20 },
-  { name: 'Billability', type: 'text', required: true, min: 2, max: 3, pattern: /^(yes|no)$/i },
-  { name: 'Shift Start Time', type: 'text', required: true, min: 1, max: 5 },
-  { name: 'Shift End Time', type: 'text', required: true, min: 1, max: 5 },
-  { name: 'Description', type: 'textarea', required: true, min: 1, max: 100 },
+  { name: 'Shift Start Time', type: 'time', required: true }, 
+  { name: 'Shift End Time', type: 'time', required: true }, 
+  { name: 'Description', type: 'textarea', required: true, min: 1, max: 100, pattern: /^[^\s].*$/ },
 ];
 
 const App = () => {
@@ -43,8 +38,10 @@ const App = () => {
   };
 
   const handleFieldChange = (value, index) => {
+    const trimmedValue = value.replace(/^\s+/, '');
+    
     const newTempFormData = [...tempFormData];
-    newTempFormData[index] = value;
+    newTempFormData[index] = trimmedValue;
     setTempFormData(newTempFormData);
   };
 
@@ -53,12 +50,13 @@ const App = () => {
     fields.forEach((field, index) => {
       const value = tempFormData[index];
       if (field.required && (!value || value.length < field.min || value.length > field.max)) {
-        newErrors[field.name] = `${field.name} is required and must be between ${field.min} and ${field.max} characters.`;
+        newErrors[field.name] = `min ${field.min} and max ${field.max} characters.`;
       }
-
+  
       if (field.pattern && !field.pattern.test(value)) {
         newErrors[field.name] = `${field.name} is in an invalid format.`;
       }
+      
       if (field.name === 'End Date' && newErrors['Start Date'] === undefined) {
         const startDate = new Date(tempFormData[fields.findIndex(f => f.name === 'Start Date')]);
         const endDate = new Date(value);
@@ -124,13 +122,13 @@ const App = () => {
       </div>
       <div className="mb-4 flex justify-end">
         <button onClick={handleModalOpen} className="text-black bg-gray-300 font-semibold py-2 px-4 rounded border border-black">
-          Add Field +
+          Add Field
         </button>
         <button className="text-black bg-gray-300 font-semibold py-2 px-4 mx-2 rounded border border-black">
           Export to Excel
         </button>
       </div>
-        <div className='my-4 font-bold'>Project Name : HRMS</div>
+      <div className='my-4 font'>Project Name : HRMS</div>
       <table className="table-auto border-collapse border border-black w-full">
         <thead>
           <tr>
@@ -177,7 +175,6 @@ const App = () => {
         </tbody>
       </table>
 
-      {/* Add Field Modal */}
       {isOpen && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center">
           <div className="bg-white p-6 rounded-lg shadow-lg w-full max-w-lg mx-2">
@@ -210,7 +207,6 @@ const App = () => {
         </div>
       )}
 
-      {/* Hello Popup */}
       {isHelloPopupOpen && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center">
           <div className="bg-white p-6 rounded-lg shadow-lg max-w-4xl mx-2">
@@ -221,34 +217,34 @@ const App = () => {
               </button>
             </div>
             <form className="grid grid-cols-4 gap-4">
-              {fields.map((field, index) => (
-                <div key={index} className="mb-4 col-span-1">
-                  <label className="block text-black font-medium">{field.name}</label>
-                  {field.type === 'textarea' ? (
-                    <textarea
-                      value={tempFormData[index] || ''}
-                      onChange={e => handleFieldChange(e.target.value, index)}
-                      className={`mt-1 p-2 block border border-black rounded-md h-32 ${errors[field.name] ? 'border-red-500' : ''}`}
-                    />
-                  ) : field.type === 'date' ? (
-                    <input
-                      type="date"
-                      value={tempFormData[index] || ''}
-                      onChange={e => handleFieldChange(e.target.value, index)}
-                      onKeyDown={preventInput}
-                      className={`mt-1 p-2 block w-full border border-black rounded-md ${errors[field.name] ? 'border-red-500' : ''}`}
-                    />
-                  ) : (
-                    <input
-                      type={field.type}
-                      value={tempFormData[index] || ''}
-                      onChange={e => handleFieldChange(e.target.value, index)}
-                      className={`mt-1 p-2 block w-full border border-black rounded-md ${errors[field.name] ? 'border-red-500' : ''}`}
-                    />
-                  )}
-                  {errors[field.name] && <span className="text-red-500 text-sm">{errors[field.name]}</span>}
-                </div>
-              ))}
+            {fields.map((field, index) => (
+              <div key={index} className="col-span-1">
+                <label className="block text-black font-medium">{field.name}</label>
+                {field.type === 'textarea' ? (
+                  <textarea
+                    value={tempFormData[index] || ''}
+                    onChange={e => handleFieldChange(e.target.value, index)}
+                    className={`mt-1 p-2 block border border-black rounded-md h-32 ${errors[field.name] ? 'border-red-500' : ''}`}
+                  />
+                ) : field.type === 'date' || field.type === 'time' ? ( 
+                  <input
+                    type={field.type}
+                    value={tempFormData[index] || ''}
+                    onKeyDown={preventInput}
+                    onChange={e => handleFieldChange(e.target.value, index)}
+                    className={`mt-1 p-2 block w-full border border-black rounded-md ${errors[field.name] ? 'border-red-500' : ''}`}
+                  />
+                ) : (
+                  <input
+                    type={field.type}
+                    value={tempFormData[index] || ''}
+                    onChange={e => handleFieldChange(e.target.value, index)}
+                    className={`mt-1 p-2 block w-full border border-black rounded-md ${errors[field.name] ? 'border-red-500' : ''}`}
+                  />
+                )}
+                {errors[field.name] && <span className="text-red-500 text-sm">{errors[field.name]}</span>}
+              </div>
+            ))}
             </form>
             <div className="flex justify-end space-x-2 mt-4">
               <button type="button" onClick={handleRowSave} className="bg-gray-300 hover:bg-gray-400 text-black font-semibold py-2 px-4 rounded-md">
