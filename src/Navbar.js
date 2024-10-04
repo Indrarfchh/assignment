@@ -1,7 +1,6 @@
 import React from 'react';
 import { SlEnvolope } from "react-icons/sl";
 import { IoNotifications } from "react-icons/io5";
-// import { FaCalendar } from "react-icons/fa";
 import logo from './ima.jpg';
 
 function Navbar() {
@@ -13,7 +12,7 @@ function Navbar() {
         </div>
 
         <div className="flex items-center text-black ml-10 sm:ml-20 md:ml-44">
-          {/* <FaCalendar className="text-lg md:text-2xl mr-2" /> */}
+        
           <h1 className="text-sm md:text-xl font-semibold">Assignment Masters</h1>
         </div>
 

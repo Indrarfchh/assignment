@@ -27,11 +27,11 @@ function Project() {
   const nameRegex = /^[a-zA-Z][a-zA-Z\s]*$/ // Only letters and spaces
   const codeRegex = /^(?!0)[a-zA-Z][a-zA-Z0-9\-\/]*$/;// Letters, numbers, and - /
 
-  // const navigate = useNavigate();
+  const navigate = useNavigate();
 
-  // const handleButtonClick = () => {
-  //   navigate('/App');
-  // };
+  const handleButtonClick = () => {
+    navigate('/App');
+  };
   const handleClosePopup = () => {
     setShowPopup(false);
     setEditIndex(null);
@@ -221,7 +221,7 @@ function Project() {
                     </td>
                     <td className="py-2 px-2 border-b border-gray-900 border-r text-center">
                       <button className="inline-block cursor-pointer mr-2 py-1 px-4 bg-green-600 text-white rounded-md" 
-                      // onClick={handleButtonClick}
+                      onClick={handleButtonClick}
                       >
                         View
                       </button>
