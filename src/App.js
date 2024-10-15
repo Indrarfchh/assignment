@@ -1,19 +1,21 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import axios from 'axios';
 import { TiPencil } from 'react-icons/ti';
 import { RiDeleteBin6Line } from 'react-icons/ri';
 import { MdCancelPresentation } from 'react-icons/md';
 import { AiOutlineHome } from "react-icons/ai";
 
 const defaultFields = [
-  { name: 'Employee ID', type: 'text', required: true, min: 1, max: 20, pattern: /^[^\s][a-zA-Z0-9]*$/ },
-  { name: 'Employee Name', type: 'text', required: true, min: 1, max: 20, pattern: /^[^\s][a-zA-Z\s]*$/ },
-  { name: 'Employee Designation', type: 'text', required: true, min: 1, max: 20, pattern: /^[^\s][a-zA-Z0-9\-/\s]*$/ },
-  { name: 'Project Code', type: 'text', required: true, min: 1, max: 20, pattern: /^[^\s][a-zA-Z0-9]*$/ },
-  { name: 'Start Date', type: 'date', required: true },
-  { name: 'End Date', type: 'date', required: true },
-  { name: 'Shift Start Time', type: 'time', required: true }, 
-  { name: 'Shift End Time', type: 'time', required: true }, 
-  { name: 'Description', type: 'textarea', required: true, min: 1, max: 100, pattern: /^[^\s].*$/ },
+  { name: 'employeeId', type: 'text', required: true, min: 1, max: 20, pattern: /^[^\s][a-zA-Z0-9]*$/ },
+  { name: 'employeeName', type: 'text', required: true, min: 1, max: 20 },
+  { name: 'employeeDesignation', type: 'text', required: true, min: 1, max: 20, pattern: /^[^\s][a-zA-Z0-9\-/\s]*$/ },
+  { name: 'projectCode', type: 'text', required: true, min: 1, max: 20, pattern: /^[^\s][a-zA-Z0-9]*$/ },
+  { name: 'startDate', type: 'date', required: true },
+  { name: 'endDate', type: 'date', required: true },
+  { name: 'shiftStartTime', type: 'time', required: true }, 
+  { name: 'shiftEndTime', type: 'time', required: true },
+  { name: 'bilabilityLocation', type: 'text', required: true, min: 1, max: 20 },
+  { name: 'comments', type: 'textarea', required: false, min: 1, max: 100, pattern: /^[^\s].*$/ },
 ];
 
 const App = () => {
@@ -26,8 +28,42 @@ const App = () => {
   const [selectedFields, setSelectedFields] = useState([]);
   const [errors, setErrors] = useState({});
 
-  const handleModalToggle = () => setIsOpen(prev => !prev);
+  const apiBaseUrl = 'http://192.168.0.245:8080/hrmsapplication/assignments';
 
+  useEffect(() => {
+    const fetchAssignments = async () => {
+      try {
+        const response = await axios.get(`${apiBaseUrl}/getAssignments/EXP01`);
+        const formattedRows = response.data.map(item => ({
+          id: item.id,
+          employeeId: item.employeeId,
+          employeeName: item.employeeName,
+          employeeDesignation: item.employeeDesignation,
+          projectCode: item.projectCode,
+          startDate: item.startDate,
+          endDate: item.endDate,
+          shiftStartTime: item.shiftStartTime,
+          shiftEndTime: item.shiftEndTime,
+          comments: item.comments,
+        }));
+        setRows(formattedRows);
+      } catch (error) {
+        console.error(`Error fetching assignments: ${error}`);
+      }
+    };
+
+    fetchAssignments();
+    const urlParams = new URLSearchParams(window.location.search);
+    const fieldsParam = urlParams.get('fields');
+    if (fieldsParam) {
+      const selectedFieldNames = fieldsParam.split(',');
+      const newSelectedFields = defaultFields.filter(field => selectedFieldNames.includes(field.name));
+      setSelectedFields(newSelectedFields);
+      setFields(newSelectedFields);
+    }
+  }, []);
+
+  const handleModalToggle = () => setIsOpen(prev => !prev);
   const handleHelloPopupToggle = () => {
     setIsHelloPopupOpen(prev => !prev);
     if (isHelloPopupOpen) {
@@ -39,7 +75,6 @@ const App = () => {
 
   const handleFieldChange = (value, index) => {
     const trimmedValue = value.replace(/^\s+/, '');
-    
     const newTempFormData = [...tempFormData];
     newTempFormData[index] = trimmedValue;
     setTempFormData(newTempFormData);
@@ -52,16 +87,16 @@ const App = () => {
       if (field.required && (!value || value.length < field.min || value.length > field.max)) {
         newErrors[field.name] = `min ${field.min} and max ${field.max} characters.`;
       }
-  
+
       if (field.pattern && !field.pattern.test(value)) {
         newErrors[field.name] = `${field.name} is in an invalid format.`;
       }
       
-      if (field.name === 'End Date' && newErrors['Start Date'] === undefined) {
-        const startDate = new Date(tempFormData[fields.findIndex(f => f.name === 'Start Date')]);
+      if (field.name === 'endDate' && newErrors['startDate'] === undefined) {
+        const startDate = new Date(tempFormData[fields.findIndex(f => f.name === 'startDate')]);
         const endDate = new Date(value);
         if (startDate >= endDate) {
-          newErrors['End Date'] = 'End Date must be after Start Date.';
+          newErrors['endDate'] = 'End Date must be after Start Date.';
         }
       }
     });
@@ -69,16 +104,40 @@ const App = () => {
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleRowSave = () => {
+  const handleRowSave = async () => {
     if (validateFields()) {
-      if (editIndex !== null) {
-        setRows(prev => prev.map((row, index) => index === editIndex ? { ...row, ...tempFormData.reduce((acc, val, i) => ({ ...acc, [fields[i].name]: val }), {}) } : row));
-      } else {
-        const newRow = tempFormData.reduce((acc, val, i) => ({ ...acc, [fields[i].name]: val }), {});
-        setRows(prev => [...prev, newRow]);
+      const newRow = tempFormData.reduce((acc, val, i) => ({ ...acc, [fields[i].name]: val }), {});
+
+      try {
+        if (editIndex !== null) {
+          const id = rows[editIndex].id; 
+          const response = await axios.patch(
+            `http://192.168.0.119:8080/hrmsapplication/assignments/update/${id}`, 
+            newRow
+          );
+
+          console.log("PATCH Response Data:", response.data);
+
+          setRows(prev => {
+            const updatedRows = [...prev];
+            updatedRows[editIndex] = { ...updatedRows[editIndex], ...newRow }; 
+            return updatedRows;
+          });
+        } else {
+          const response = await axios.post(`${apiBaseUrl}/create`, newRow);
+          console.log("POST Response Data:", response.data);
+
+          setRows(prev => [...prev, { ...newRow, id: response.data.id }]); // Assuming the API returns the new row's id
+        }
+        
+        setTempFormData(new Array(fields.length).fill(''));
+        handleHelloPopupToggle();
+      } catch (error) {
+        console.error("Error saving assignment:", error.response?.data || error.message);
+        alert("There was an error saving the row. Please try again.");
       }
-      setTempFormData(new Array(fields.length).fill(''));
-      handleHelloPopupToggle();
+    } else {
+      console.log("Field validation failed.");
     }
   };
 
@@ -96,12 +155,12 @@ const App = () => {
   };
 
   const handleSaveSelectedFields = () => {
-    const newFields = defaultFields.filter(field =>
-      selectedFields.find(selected => selected.name === field.name)
-    );
-
-    setFields(newFields);
+    setFields(selectedFields);
     handleModalToggle();
+
+    const fieldsParam = selectedFields.map(field => field.name).join(',');
+    const newUrl = `${window.location.pathname}?fields=${fieldsParam}`;
+    window.history.replaceState({}, '', newUrl);
   };
 
   const handleModalOpen = () => {
@@ -177,7 +236,7 @@ const App = () => {
 
       {isOpen && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center">
-          <div className="bg-white p-6 rounded-lg shadow-lg w-full max-w-lg mx-2">
+          <div className="bg-white p-6 rounded-lg shadow-lg">
             <div className='bg-orange-500 flex justify-between px-4 py-2 rounded-lg border border-black mb-4'>
               <h2 className="text-lg font-semibold text-center">Select Fields</h2>
               <button onClick={handleModalToggle} className="text-xl font-bold text-black">
@@ -217,34 +276,34 @@ const App = () => {
               </button>
             </div>
             <form className="grid grid-cols-4 gap-4">
-            {fields.map((field, index) => (
-              <div key={index} className="col-span-1">
-                <label className="block text-black font-medium">{field.name}</label>
-                {field.type === 'textarea' ? (
-                  <textarea
-                    value={tempFormData[index] || ''}
-                    onChange={e => handleFieldChange(e.target.value, index)}
-                    className={`mt-1 p-2 block border border-black rounded-md h-32 ${errors[field.name] ? 'border-red-500' : ''}`}
-                  />
-                ) : field.type === 'date' || field.type === 'time' ? ( 
-                  <input
-                    type={field.type}
-                    value={tempFormData[index] || ''}
-                    onKeyDown={preventInput}
-                    onChange={e => handleFieldChange(e.target.value, index)}
-                    className={`mt-1 p-2 block w-full border border-black rounded-md ${errors[field.name] ? 'border-red-500' : ''}`}
-                  />
-                ) : (
-                  <input
-                    type={field.type}
-                    value={tempFormData[index] || ''}
-                    onChange={e => handleFieldChange(e.target.value, index)}
-                    className={`mt-1 p-2 block w-full border border-black rounded-md ${errors[field.name] ? 'border-red-500' : ''}`}
-                  />
-                )}
-                {errors[field.name] && <span className="text-red-500 text-sm">{errors[field.name]}</span>}
-              </div>
-            ))}
+              {fields.map((field, index) => (
+                <div key={index} className="col-span-1">
+                  <label className="block text-black font-medium">{field.name}</label>
+                  {field.type === 'textarea' ? (
+                    <textarea
+                      value={tempFormData[index] || ''}
+                      onChange={e => handleFieldChange(e.target.value, index)}
+                      className={`mt-1 p-2 block border border-black rounded-md h-32 ${errors[field.name] ? 'border-red-500' : ''}`}
+                    />
+                  ) : field.type === 'date' || field.type === 'time' ? ( 
+                    <input
+                      type={field.type}
+                      value={tempFormData[index] || ''}
+                      onKeyDown={preventInput}
+                      onChange={e => handleFieldChange(e.target.value, index)}
+                      className={`mt-1 p-2 block w-full border border-black rounded-md ${errors[field.name] ? 'border-red-500' : ''}`}
+                    />
+                  ) : (
+                    <input
+                      type={field.type}
+                      value={tempFormData[index] || ''}
+                      onChange={e => handleFieldChange(e.target.value, index)}
+                      className={`mt-1 p-2 block w-full border border-black rounded-md ${errors[field.name] ? 'border-red-500' : ''}`}
+                    />
+                  )}
+                  {errors[field.name] && <span className="text-red-500 text-sm">{errors[field.name]}</span>}
+                </div>
+              ))}
             </form>
             <div className="flex justify-end space-x-2 mt-4">
               <button type="button" onClick={handleRowSave} className="bg-gray-300 hover:bg-gray-400 text-black font-semibold py-2 px-4 rounded-md">
