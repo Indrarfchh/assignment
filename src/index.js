@@ -6,13 +6,15 @@ import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import Navbar from './Navbar';
 import Project from './project';
 import App from './App';
+import Log from './Log';
 
 const root = ReactDOM.createRoot(document.getElementById('root'));
 root.render(
   <Router>
     <Navbar/>
     <Routes>
-    <Route path="/" element={<Project />} />
+      <Route path="/" element={<Log />} />
+    <Route path="/assignment" element={<Project />} />
     <Route path="/App" element={<App />} />
     </Routes>
   </Router>

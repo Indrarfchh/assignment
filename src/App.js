@@ -18,6 +18,19 @@ const defaultFields = [
   { name: 'comments', type: 'textarea', required: false, min: 1, max: 100, pattern: /^[^\s].*$/ },
 ];
 
+const labels = {
+  employeeId: 'Employee ID',
+  employeeName: 'Employee Name',
+  employeeDesignation: 'Designation',
+  projectCode: 'Project Code',
+  startDate: 'Start Date',
+  endDate: 'End Date',
+  shiftStartTime: 'Shift Start Time',
+  shiftEndTime: 'Shift End Time',
+  bilabilityLocation: 'Location',
+  comments: 'Comments',
+};
+
 const App = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [isHelloPopupOpen, setIsHelloPopupOpen] = useState(false);
@@ -28,12 +41,17 @@ const App = () => {
   const [selectedFields, setSelectedFields] = useState([]);
   const [errors, setErrors] = useState({});
 
-  const apiBaseUrl = 'http://192.168.0.245:8080/hrmsapplication/assignments';
+  const apiBaseUrl = 'https://hrms-render-cloud.onrender.com/hrmsapplication/assignments';
+  const token = 'eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJIUk1TMCIsImlhdCI6MTcyODk5NzExMiwiZXhwIjoxNzI4OTk3NzEyfQ.wJNBYEJlZVGmj4pXIa059RTM1zhPIpz2-E8Mg46WZKE'; // Replace with your token
 
   useEffect(() => {
     const fetchAssignments = async () => {
       try {
-        const response = await axios.get(`${apiBaseUrl}/getAssignments/EXP01`);
+        const response = await axios.get(`${apiBaseUrl}/getAssignments/EXP01`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
         const formattedRows = response.data.map(item => ({
           id: item.id,
           employeeId: item.employeeId,
@@ -112,11 +130,17 @@ const App = () => {
         if (editIndex !== null) {
           const id = rows[editIndex].id; 
           const response = await axios.patch(
-            `http://192.168.0.119:8080/hrmsapplication/assignments/update/${id}`, 
-            newRow
+            `https://hrms-render-cloud.onrender.com/hrmsapplication/assignments/update${id}`, 
+            newRow,
+            {
+              headers: {
+                Authorization: `Bearer ${token}`,
+              },
+            }
           );
 
           console.log("PATCH Response Data:", response.data);
+          
 
           setRows(prev => {
             const updatedRows = [...prev];
@@ -124,7 +148,11 @@ const App = () => {
             return updatedRows;
           });
         } else {
-          const response = await axios.post(`${apiBaseUrl}/create`, newRow);
+          const response = await axios.post(`${apiBaseUrl}/create`, newRow, {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          });
           console.log("POST Response Data:", response.data);
 
           setRows(prev => [...prev, { ...newRow, id: response.data.id }]); // Assuming the API returns the new row's id
@@ -200,7 +228,7 @@ const App = () => {
           <tr className="bg-gray-200">
             {fields.map((field, index) => (
               <th key={index} className="border border-black p-2 text-center">
-                {field.name}
+                {labels[field.name]}
               </th>
             ))}
             {fields.length > 0 && <th className="border border-black p-2 text-center">Actions</th>}
@@ -250,7 +278,7 @@ const App = () => {
                   onClick={() => handleFieldSelect(field)} 
                   className={`py-2 px-4 rounded ${selectedFields.find(f => f.name === field.name) ? 'bg-orange-500 text-white' : 'bg-gray-300 text-black'}`}
                 >
-                  {field.name}
+                  {labels[field.name]}
                 </button>
               ))}
             </div>
@@ -278,7 +306,7 @@ const App = () => {
             <form className="grid grid-cols-4 gap-4">
               {fields.map((field, index) => (
                 <div key={index} className="col-span-1">
-                  <label className="block text-black font-medium">{field.name}</label>
+                  <label className="block text-black font-medium">{labels[field.name]}</label>
                   {field.type === 'textarea' ? (
                     <textarea
                       value={tempFormData[index] || ''}
