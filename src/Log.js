@@ -97,7 +97,7 @@ function Log() {
 
     try {
       const response = await fetch(
-        `https://hrms-render-cloud.onrender.com/hrmsapplication/authentication/login?${queryParams.toString()}`,
+        `http://192.168.0.245:8080/hrmsapplication/authentication/login?${queryParams.toString()}`,
         {
           method: 'POST',
         }
@@ -120,7 +120,13 @@ function Log() {
         // Handle successful response
         console.log('Login successful:', data);
         alert('Login successful');
+        const { token, refreshToken, userId } = data; // Ensure these fields exist in the response
+        localStorage.setItem('token', token); // Changed to lowercase 'token'
+        // localStorage.setItem('userId', userId); // Store 'userId' in localStorage
+        // setCookie('refreshToken',refreshToken)
         // Redirect to Organisation.jsx
+        console.log('navgated to organizations');
+        
         navigate('/assignment');
       } else {
         setErrors((prevErrors) => ({
@@ -252,4 +258,3 @@ function Log() {
 }
 
 export default Log;
-

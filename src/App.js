@@ -4,6 +4,7 @@ import { TiPencil } from 'react-icons/ti';
 import { RiDeleteBin6Line } from 'react-icons/ri';
 import { MdCancelPresentation } from 'react-icons/md';
 import { AiOutlineHome } from "react-icons/ai";
+import axiosInstance from './axios';
 
 const defaultFields = [
   { name: 'employeeId', type: 'text', required: true, min: 1, max: 20, pattern: /^[^\s][a-zA-Z0-9]*$/ },
@@ -41,17 +42,11 @@ const App = () => {
   const [selectedFields, setSelectedFields] = useState([]);
   const [errors, setErrors] = useState({});
 
-  const apiBaseUrl = 'https://hrms-render-cloud.onrender.com/hrmsapplication/assignments';
-  const token = 'eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJIUk1TMCIsImlhdCI6MTcyODk5NzExMiwiZXhwIjoxNzI4OTk3NzEyfQ.wJNBYEJlZVGmj4pXIa059RTM1zhPIpz2-E8Mg46WZKE'; // Replace with your token
-
   useEffect(() => {
     const fetchAssignments = async () => {
       try {
-        const response = await axios.get(`${apiBaseUrl}/getAssignments/EXP01`, {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        });
+        const response = await axiosInstance.get('http://192.168.0.245:8080/hrmsapplication/assignments/getAssignments/${projectcode}'); // Updated URL
+        setSelectedFields(response.data)
         const formattedRows = response.data.map(item => ({
           id: item.id,
           employeeId: item.employeeId,
@@ -66,11 +61,13 @@ const App = () => {
         }));
         setRows(formattedRows);
       } catch (error) {
-        console.error(`Error fetching assignments: ${error}`);
+        console.error('Error fetching assignments:', error.message); // Improved error message
+        alert('Failed to fetch assignments. Please check your network connection and try again.');
       }
     };
-
+  
     fetchAssignments();
+  
     const urlParams = new URLSearchParams(window.location.search);
     const fieldsParam = urlParams.get('fields');
     if (fieldsParam) {
@@ -80,7 +77,6 @@ const App = () => {
       setFields(newSelectedFields);
     }
   }, []);
-
   const handleModalToggle = () => setIsOpen(prev => !prev);
   const handleHelloPopupToggle = () => {
     setIsHelloPopupOpen(prev => !prev);
@@ -125,52 +121,70 @@ const App = () => {
   const handleRowSave = async () => {
     if (validateFields()) {
       const newRow = tempFormData.reduce((acc, val, i) => ({ ...acc, [fields[i].name]: val }), {});
-
+  
       try {
+        let response;
+  
+        // Determine whether to update or create
         if (editIndex !== null) {
-          const id = rows[editIndex].id; 
-          const response = await axios.patch(
-            `https://hrms-render-cloud.onrender.com/hrmsapplication/assignments/update${id}`, 
-            newRow,
-            {
-              headers: {
-                Authorization: `Bearer ${token}`,
-              },
-            }
+          const updateData = { id: rows[editIndex].id, ...newRow };
+  
+          // Debugging: Log the update data
+          console.log("Updating row with data:", updateData);
+  
+          response = await axiosInstance.patch(
+            `http://192.168.0.245:8080/hrmsapplication/assignments/update`,
+            updateData
           );
-
+  
           console.log("PATCH Response Data:", response.data);
-          
-
+  
+          // Update the row in the state
           setRows(prev => {
             const updatedRows = [...prev];
             updatedRows[editIndex] = { ...updatedRows[editIndex], ...newRow }; 
             return updatedRows;
           });
         } else {
-          const response = await axios.post(`${apiBaseUrl}/create`, newRow, {
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
-          });
+          response = await axiosInstance.post(
+            'http://192.168.0.245:8080/hrmsapplication/assignments/create',
+            newRow
+          );
+  
           console.log("POST Response Data:", response.data);
-
-          setRows(prev => [...prev, { ...newRow, id: response.data.id }]); // Assuming the API returns the new row's id
+  
+          // Add the new row to the state
+          setRows(prev => [...prev, { ...newRow, id: response.data.id }]);
         }
-        
+  
+        // Reset temporary form data
         setTempFormData(new Array(fields.length).fill(''));
         handleHelloPopupToggle();
       } catch (error) {
-        console.error("Error saving assignment:", error.response?.data || error.message);
-        alert("There was an error saving the row. Please try again.");
+        // Improved error handling
+        const errorMessage = error.response?.data?.message || "There was an error saving the row. Please try again.";
+        console.error("Error saving assignment:", errorMessage);
+        alert(errorMessage);
       }
     } else {
       console.log("Field validation failed.");
+      alert("Please fill in all required fields correctly.");
     }
   };
+  
 
-  const handleRowDelete = (rowIndex) => {
-    setRows(prev => prev.filter((_, index) => index !== rowIndex));
+  
+
+  const handleRowDelete = async (rowIndex) => {
+    const id = rows[rowIndex].id; // Assuming each row has an id
+    try {
+      await axiosInstance.delete(`http://192.168.0.245:8080/hrmsapplication/assignments/deleteAssignment/${id}`);
+      setRows(prev => prev.filter((_, index) => index !== rowIndex));
+      console.log("Row deleted successfully");
+    } catch (error) {
+      console.error("Error deleting assignment:", error.response?.data || error.message);
+      alert("There was an error deleting the row. Please try again.");
+    }
   };
 
   const handleFieldSelect = (field) => {

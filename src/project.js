@@ -5,6 +5,9 @@ import { FaLessThan } from "react-icons/fa";
 import { MdCancelPresentation } from "react-icons/md";
 import { AiOutlineHome } from "react-icons/ai";
 import axios from 'axios';
+import axiosInstance from "./axios";
+import { useNavigate } from 'react-router-dom';
+
 
 function Project() {
   const initialData = {
@@ -26,14 +29,16 @@ function Project() {
   const nameRegex = /^[a-zA-Z][a-zA-Z\s]*$/; // Only letters and spaces
   const codeRegex = /^(?!0)[a-zA-Z][a-zA-Z0-9\-\/]*$/; // Letters, numbers, and - /
 
-  const fetchProjects = async () => {
+  const fetchProjects = async () => { 
     try {
-      const response = await axios.get("http://192.168.0.245:8080/hrmsapplication/project/getProjects"); // Adjust as needed
+      const response = await axiosInstance.get("http://192.168.0.245:8080/hrmsapplication/project/getProjects/exp012"); // Adjust as needed
       setTableData(response.data);
     } catch (error) {
       console.error("Error fetching projects:", error);
     }
   };
+  const navigate = useNavigate();
+
 
   const handleClosePopup = () => {
     setShowPopup(false);
@@ -101,13 +106,13 @@ function Project() {
     try {
       if (editIndex !== null) {
         // Update existing project
-        const response = await axios.patch(`http://192.168.0.119:8080/hrmsapplication/project/update`, formData);
+        const response = await axiosInstance.patch("http://192.168.0.245:8080/hrmsapplication/project/update", formData);
         const updatedData = [...tableData];
         updatedData[editIndex] = response.data;
         setTableData(updatedData);
       } else {
         // Create new project
-        const response = await axios.post("http://192.168.0.119:8080/hrmsapplication/project/create", formData);
+        const response = await axiosInstance.post("http://192.168.0.245:8080/hrmsapplication/project/create", formData);
         setTableData([...tableData, response.data]);
       }
       handleClosePopup();
@@ -130,7 +135,7 @@ function Project() {
   const handleDelete = async (index) => {
     const projectCode = tableData[index].projectCode;
     try {
-      await axios.delete(`http://192.168.0.119:8080/hrmsapplication/project/deleteProject/${projectCode}`);
+      await axiosInstance.delete(`http://192.168.0.245:8080/hrmsapplication/project/deleteProject/${projectCode}`);
       const updatedData = tableData.filter((_, i) => i !== index);
       setTableData(updatedData);
     } catch (error) {
@@ -199,10 +204,10 @@ function Project() {
                       <div className="flex flex-row justify-center">
                         <TiPencil className="mr-2 cursor-pointer text-black-500 text-xs sm:text-sm" onClick={() => handleOpenPopup(index)} />
                         <RiDeleteBin6Line className="cursor-pointer text-black-500 text-xs sm:text-sm" onClick={() => handleDelete(index)} />
-                      </div>
+                      </div>  
                     </td>
                     <td className="py-2 px-2 border-b border-gray-900 text-center">
-                      <button className="py-2 px-2 border-b-black border-2 border-solid border-black text-center">
+                      <button className="py-2 px-2 border-b-black border-2 border-solid border-black text-center"  onClick={() => navigate(`/app`)}>
                         View
                       </button>
                     </td>
