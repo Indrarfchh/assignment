@@ -207,7 +207,7 @@ function Project() {
                       </div>  
                     </td>
                     <td className="py-2 px-2 border-b border-gray-900 text-center">
-                      <button className="py-2 px-2 border-b-black border-2 border-solid border-black text-center"  onClick={() => navigate(`/app`)}>
+                      <button className="py-2 px-2 border-b-black border-2 border-solid border-black text-center bg-orange-500"  onClick={() => navigate(`/app`)}>
                         View
                       </button>
                     </td>
