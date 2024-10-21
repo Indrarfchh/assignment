@@ -14,12 +14,12 @@ function deleteCookie(name) {
 
 // Create an Axios instance for general API requests
 const axiosInstance = axios.create({
-  baseURL: 'http://192.168.0.245:8080/hrmsapplication',
+  baseURL: 'https://hrms-application-oxy0.onrender.com/hrmsapplication',
 });
 
 // Create a separate Axios instance for auth-related requests to avoid interceptors
 const authAxios = axios.create({
-  baseURL: 'http://192.168.0.245:8080/hrmsapplication',
+  baseURL: 'https://hrms-application-oxy0.onrender.com/hrmsapplication',
 });
 
 // Flags and queues to manage token refreshing

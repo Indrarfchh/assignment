@@ -6,8 +6,9 @@ import { MdCancelPresentation } from "react-icons/md";
 import { AiOutlineHome } from "react-icons/ai";
 import axios from 'axios';
 import axiosInstance from "./axios";
+import { NavLink } from 'react-router-dom';
 import { useNavigate } from 'react-router-dom';
-
+import App from "./App";
 
 function Project() {
   const initialData = {
@@ -17,6 +18,7 @@ function Project() {
     managerName: "",
     description: "",
     billability: "",
+    billabilityLocation: "",
     client: "",
   };
 
@@ -26,19 +28,19 @@ function Project() {
   const [tableData, setTableData] = useState([]);
   const [editIndex, setEditIndex] = useState(null);
 
-  const nameRegex = /^[a-zA-Z][a-zA-Z\s]*$/; // Only letters and spaces
-  const codeRegex = /^(?!0)[a-zA-Z][a-zA-Z0-9\-\/]*$/; // Letters, numbers, and - /
+  const nameRegex = /^(?!0)[a-zA-Z][a-zA-Z\s]*$/;
+  const codeRegex = /^(?!0)[a-zA-Z][a-zA-Z0-9\-\/]*$/;
 
-  const fetchProjects = async () => { 
+  const fetchProjects = async () => {
     try {
-      const response = await axiosInstance.get("http://192.168.0.245:8080/hrmsapplication/project/getProjects/exp012"); // Adjust as needed
+      const response = await axiosInstance.get("https://hrms-application-oxy0.onrender.com/hrmsapplication/project/getProjects");
       setTableData(response.data);
     } catch (error) {
       console.error("Error fetching projects:", error);
     }
   };
-  const navigate = useNavigate();
 
+  const navigate = useNavigate();
 
   const handleClosePopup = () => {
     setShowPopup(false);
@@ -53,7 +55,7 @@ function Project() {
       formErrors.projectName = "Project Name is required";
     } else if (formData.projectName.length < 1 || formData.projectName.length > 20) {
       formErrors.projectName = "Project Name must be between 1 and 20 characters";
-    } else if (!codeRegex.test(formData.projectName)) {
+    } else if (!nameRegex.test(formData.projectName)) {
       formErrors.projectName = "Must start with a letter and can only include letters and spaces";
     }
 
@@ -73,6 +75,14 @@ function Project() {
       formErrors.managerName = "Project Manager Name is required";
     } else if (!nameRegex.test(formData.managerName)) {
       formErrors.managerName = "Name can only contain letters and spaces";
+    }
+
+    if (!formData.billabilityLocation) {
+      formErrors.billabilityLocation = "Location is Required";
+    } else if (!nameRegex.test(formData.billabilityLocation)) {
+      formErrors.billabilityLocation = "Name can only contain letters and spaces";
+    } else if (formData.billabilityLocation.length < 1 || formData.billabilityLocation.length > 20) {
+      formErrors.billabilityLocation = "Location must be between 1 and 20 characters";
     }
 
     if (!formData.client) {
@@ -105,19 +115,26 @@ function Project() {
 
     try {
       if (editIndex !== null) {
-        // Update existing project
-        const response = await axiosInstance.patch("http://192.168.0.245:8080/hrmsapplication/project/update", formData);
+        const response = await axiosInstance.patch("https://hrms-application-oxy0.onrender.com/hrmsapplication/project/update", formData);
         const updatedData = [...tableData];
         updatedData[editIndex] = response.data;
         setTableData(updatedData);
       } else {
-        // Create new project
-        const response = await axiosInstance.post("http://192.168.0.245:8080/hrmsapplication/project/create", formData);
+        const response = await axiosInstance.post("https://hrms-application-oxy0.onrender.com/hrmsapplication/project/create", formData);
         setTableData([...tableData, response.data]);
       }
       handleClosePopup();
     } catch (error) {
       console.error("Error saving project:", error);
+    }
+  };
+
+  const handleViewClick = (row) => {
+    if (row && row.projectCode){
+      const projectCode = row.projectCode;
+      window.location.href = `/app?projectCode=${projectCode}`;
+    } else {
+      alert('Unable to retrieve project information. Please try again.');
     }
   };
 
@@ -135,7 +152,7 @@ function Project() {
   const handleDelete = async (index) => {
     const projectCode = tableData[index].projectCode;
     try {
-      await axiosInstance.delete(`http://192.168.0.245:8080/hrmsapplication/project/deleteProject/${projectCode}`);
+      await axiosInstance.delete(`https://hrms-application-oxy0.onrender.com/hrmsapplication/project/deleteProject/${projectCode}`);
       const updatedData = tableData.filter((_, i) => i !== index);
       setTableData(updatedData);
     } catch (error) {
@@ -145,23 +162,24 @@ function Project() {
 
   useEffect(() => {
     fetchProjects();
-     // Fetch projects on component mount
   }, []);
 
   return (
     <div>
       <div className="mr-10 ml-6">
-        <div className="flex items-center justify-start px-2 py-2 overflow-x-auto border-2 border-gray-800 rounded-md w-40 ml-5 mb-5 mt-5">
-          <FaLessThan className="text-orange-500 mr-2" />
-          <button>
-            <span className="text font-semibold text-orange-500">Previous Page</span>
-          </button>
+        <div className="">
+          <div>
+            <NavLink className="flex items-center justify-start px-2 py-2  border border-gray-800 rounded-md w-40 ml-5 mb-5 mt-5" to='/'>
+              <FaLessThan className="text-orange-500 mr-2" />
+              <button><span className="text font-semibold text-orange-500">Previous Page</span></button>
+            </NavLink>
+          </div>
         </div>
         <div className='border border-black p-2 rounded mb-4 flex items-center'>
           <AiOutlineHome /><span className='pl-1'>Home</span>
         </div>
       </div>
-      
+
       <div className="pt-5 mt-5 ml-3 md:ml-20 lg:ml-40 mx-auto mr-3 md:mr-20 lg:mr-40">
         <div className="overflow-x-auto">
           <div className="flex justify-end mb-2">
@@ -185,7 +203,8 @@ function Project() {
                   <th className="py-2 px-2 border-b-black border-2 border-solid border-black text-center">Project Manager Name</th>
                   <th className="py-2 px-2 border-b-black border-2 border-solid border-black text-center">Project Description</th>
                   <th className="py-2 px-2 border-b-black border-2 border-solid border-black text-center">Billability</th>
-                  <th className="py-2 px-2 border-b-black border-2 border-solid border-black text-center">Client</th>
+                  <th className="py-2 px-2 border-b-black border-2 border-solid border-black text-center">Billability Location</th>
+                  <th className="py-2 px-5 border-b-black border-2 border-solid border-black text-center">Client</th>
                   <th className="py-2 px-2 border-b-black border-2 border-solid border-black text-center">Actions</th>
                   <th className="py-2 px-2 border-b-black border-2 border-solid border-black text-center">Project View</th>
                 </tr>
@@ -199,17 +218,18 @@ function Project() {
                     <td className="py-2 px-2 border-b border-gray-900 border-r text-center">{row.managerName}</td>
                     <td className="py-2 px-2 border-b border-gray-900 border-r text-center">{row.description}</td>
                     <td className="py-2 px-2 border-b border-gray-900 border-r text-center">{row.billability}</td>
-                    <td className="py-2 px-2 border-b border-gray-900 border-r text-center">{row.client}</td>
+                    <td className="py-2 px-2 border-b border-gray-900 border-r text-center">{row.billabilityLocation}</td>
+                    <td className="py-2 px-4 border-b border-gray-900 border-r text-center">{row.client}</td>
                     <td className="py-2 px-2 border-b border-gray-900 border-r text-center">
                       <div className="flex flex-row justify-center">
                         <TiPencil className="mr-2 cursor-pointer text-black-500 text-xs sm:text-sm" onClick={() => handleOpenPopup(index)} />
                         <RiDeleteBin6Line className="cursor-pointer text-black-500 text-xs sm:text-sm" onClick={() => handleDelete(index)} />
-                      </div>  
+                      </div>
                     </td>
                     <td className="py-2 px-2 border-b border-gray-900 text-center">
-                      <button className="py-2 px-2 border-b-black border-2 border-solid border-black text-center bg-orange-500"  onClick={() => navigate(`/app`)}>
-                        View
-                      </button>
+                      <button
+                        className="py-2 px-2 border-b-black border-2 border-solid border-black text-center bg-orange-500"
+                        onClick={() => handleViewClick(row)}> View </button>
                     </td>
                   </tr>
                 ))}
@@ -290,7 +310,19 @@ function Project() {
                   </select>
                   {errors.billability && <p className="text-red-500">{errors.billability}</p>}
                 </div>
-        
+
+                <div className="flex flex-col">
+                  <label className="text-gray-700 mb-1">Billability Location:</label>
+                  <input
+                    type="text"
+                    name="billabilityLocation"
+                    value={formData.billabilityLocation}
+                    onChange={(e) => setFormData({ ...formData, billabilityLocation: e.target.value })}
+                    className="p-1 border border-gray-300 rounded-lg"
+                  />
+                  {errors.billabilityLocation && <p className="text-red-500">{errors.billabilityLocation}</p>}
+                </div>
+
                 <div className="flex flex-col">
                   <label className="text-gray-700 mb-1">Client:</label>
                   <input
@@ -331,4 +363,3 @@ function Project() {
 }
 
 export default Project;
-

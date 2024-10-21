@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { FaSyncAlt } from 'react-icons/fa';
-import { useNavigate } from 'react-router-dom'; // Import the useNavigate hook
+import { useNavigate } from 'react-router-dom'; 
+import logo from './ima.jpg';
+// Import the useNavigate hook
 
 function generateCaptcha() {
   const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
@@ -97,7 +99,7 @@ function Log() {
 
     try {
       const response = await fetch(
-        `http://192.168.0.245:8080/hrmsapplication/authentication/login?${queryParams.toString()}`,
+        `https://hrms-application-oxy0.onrender.com/hrmsapplication/authentication/login?${queryParams.toString()}`,
         {
           method: 'POST',
         }
@@ -160,11 +162,13 @@ function Log() {
     <div className='flex justify-center items-center min-h-screen bg-neutral-100'>
       <div className='bg-white p-10 rounded-3xl shadow-lg w-full max-w-md mt-0'>
         <form onSubmit={handleSubmit}>
-          <img
+          {/* <img
             src='https://media.licdn.com/dms/image/D560BAQFQiuOx34RWww/company-logo_200_200/0/1720769688540?e=1730937600&v=beta&t=Tfi0cXQ9shhTzXWAwIelpY6x01GJos3L6Fh-mfhTbBg'
             alt='Logo'
             className='w-50 mb-0 mx-auto'
-          />
+          /> */}
+          <img src={logo} alt="Logo" className=" object-contain w-50 mb-0 mx-auto" />
+
           <h1 className='text-4xl font-bold mb-6 text-center text-orange-600'>
             Login
           </h1>

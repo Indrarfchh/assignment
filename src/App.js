@@ -5,7 +5,9 @@ import { RiDeleteBin6Line } from 'react-icons/ri';
 import { MdCancelPresentation } from 'react-icons/md';
 import { AiOutlineHome } from "react-icons/ai";
 import axiosInstance from './axios';
-
+import { NavLink } from 'react-router-dom';
+import { FaLessThan, FaSearch } from 'react-icons/fa';
+// import Project from './project';
 const defaultFields = [
   { name: 'employeeId', type: 'text', required: true, min: 1, max: 20, pattern: /^[^\s][a-zA-Z0-9]*$/ },
   { name: 'employeeName', type: 'text', required: true, min: 1, max: 20 },
@@ -44,39 +46,53 @@ const App = () => {
 
   useEffect(() => {
     const fetchAssignments = async () => {
-      try {
-        const response = await axiosInstance.get('http://192.168.0.245:8080/hrmsapplication/assignments/getAssignments/${projectcode}'); // Updated URL
-        setSelectedFields(response.data)
-        const formattedRows = response.data.map(item => ({
-          id: item.id,
-          employeeId: item.employeeId,
-          employeeName: item.employeeName,
-          employeeDesignation: item.employeeDesignation,
-          projectCode: item.projectCode,
-          startDate: item.startDate,
-          endDate: item.endDate,
-          shiftStartTime: item.shiftStartTime,
-          shiftEndTime: item.shiftEndTime,
-          comments: item.comments,
-        }));
-        setRows(formattedRows);
-      } catch (error) {
-        console.error('Error fetching assignments:', error.message); // Improved error message
-        alert('Failed to fetch assignments. Please check your network connection and try again.');
-      }
+        try {
+            const response = await axiosInstance.get(`https://hrms-application-oxy0.onrender.com/hrmsapplication/assignments/getAssignments/${projectCode}`);
+            setSelectedFields(response.data);
+            const formattedRows = response.data.map(item => ({
+                id: item.id,
+                employeeId: item.employeeId,
+                employeeName: item.employeeName,
+                employeeDesignation: item.employeeDesignation,
+                projectCode: item.projectCode,
+                startDate: item.startDate,
+                endDate: item.endDate,
+                shiftStartTime: item.shiftStartTime,
+                shiftEndTime: item.shiftEndTime,
+                comments: item.comments,
+            }));
+            setRows(formattedRows);
+        } catch (error) {
+            console.error('Error fetching assignments:', error.message);
+            alert('Failed to fetch assignments. Please check your network connection and try again.');
+        }
     };
-  
+
     fetchAssignments();
-  
+
     const urlParams = new URLSearchParams(window.location.search);
     const fieldsParam = urlParams.get('fields');
+    const projectCode = urlParams.get('projectCode');
+
     if (fieldsParam) {
-      const selectedFieldNames = fieldsParam.split(',');
-      const newSelectedFields = defaultFields.filter(field => selectedFieldNames.includes(field.name));
-      setSelectedFields(newSelectedFields);
-      setFields(newSelectedFields);
+        const selectedFieldNames = fieldsParam.split(',');
+        const newSelectedFields = defaultFields.filter(field => selectedFieldNames.includes(field.name));
+        setSelectedFields(newSelectedFields);
+        setFields(newSelectedFields);
     }
-  }, []);
+
+    // Pre-fill the project code if available
+    if (projectCode) {
+        setTempFormData(prevData => {
+            const updatedData = [...prevData];
+            const projectCodeIndex = defaultFields.findIndex(field => field.name === 'projectCode');
+            updatedData[projectCodeIndex] = projectCode; // Set project code
+            return updatedData;
+        });
+    }
+}, []);
+
+
   const handleModalToggle = () => setIsOpen(prev => !prev);
   const handleHelloPopupToggle = () => {
     setIsHelloPopupOpen(prev => !prev);
@@ -121,25 +137,20 @@ const App = () => {
   const handleRowSave = async () => {
     if (validateFields()) {
       const newRow = tempFormData.reduce((acc, val, i) => ({ ...acc, [fields[i].name]: val }), {});
-  
+
       try {
         let response;
-  
-        // Determine whether to update or create
+
         if (editIndex !== null) {
           const updateData = { id: rows[editIndex].id, ...newRow };
-  
-          // Debugging: Log the update data
           console.log("Updating row with data:", updateData);
-  
           response = await axiosInstance.patch(
-            `http://192.168.0.245:8080/hrmsapplication/assignments/update`,
+            `https://hrms-application-oxy0.onrender.com/hrmsapplication/assignments/update`,
             updateData
           );
-  
+
           console.log("PATCH Response Data:", response.data);
-  
-          // Update the row in the state
+
           setRows(prev => {
             const updatedRows = [...prev];
             updatedRows[editIndex] = { ...updatedRows[editIndex], ...newRow }; 
@@ -147,21 +158,17 @@ const App = () => {
           });
         } else {
           response = await axiosInstance.post(
-            'http://192.168.0.245:8080/hrmsapplication/assignments/create',
+            'https://hrms-application-oxy0.onrender.com/hrmsapplication/assignments/create',
             newRow
           );
-  
+
           console.log("POST Response Data:", response.data);
-  
-          // Add the new row to the state
           setRows(prev => [...prev, { ...newRow, id: response.data.id }]);
         }
-  
-        // Reset temporary form data
+
         setTempFormData(new Array(fields.length).fill(''));
         handleHelloPopupToggle();
       } catch (error) {
-        // Improved error handling
         const errorMessage = error.response?.data?.message || "There was an error saving the row. Please try again.";
         console.error("Error saving assignment:", errorMessage);
         alert(errorMessage);
@@ -171,14 +178,11 @@ const App = () => {
       alert("Please fill in all required fields correctly.");
     }
   };
-  
-
-  
 
   const handleRowDelete = async (rowIndex) => {
-    const id = rows[rowIndex].id; // Assuming each row has an id
+    const id = rows[rowIndex].id; 
     try {
-      await axiosInstance.delete(`http://192.168.0.245:8080/hrmsapplication/assignments/deleteAssignment/${id}`);
+      await axiosInstance.delete(`https://hrms-application-oxy0.onrender.com/hrmsapplication/assignments/deleteAssignment/${id}`);
       setRows(prev => prev.filter((_, index) => index !== rowIndex));
       console.log("Row deleted successfully");
     } catch (error) {
@@ -220,6 +224,12 @@ const App = () => {
     <div className="p-6">
       <div className='border border-black p-2 rounded mb-4 flex items-center'>
         <AiOutlineHome /><span className='pl-1'>Home</span>
+      </div>
+      <div>
+      <NavLink className="flex items-center justify-start px-2 py-2 overflow-x-auto border border-gray-800 rounded-md w-40 ml-5 mb-5 mt-5" to='/assignment' >
+        <FaLessThan className="text-orange-500 mr-2" />
+        <button><span className="text font-semibold text-orange-500">Previous Page</span></button>
+      </NavLink>
       </div>
       <div className="mb-4 flex justify-end">
         <button onClick={handleModalOpen} className="text-black bg-gray-300 font-semibold py-2 px-4 rounded border border-black">
