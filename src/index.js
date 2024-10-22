@@ -7,7 +7,6 @@ import Navbar from './Navbar';
 import Project from './project';
 import App from './App';
 import Log from './Log';
-import New from './News';
 
 const root = ReactDOM.createRoot(document.getElementById('root'));
 root.render(

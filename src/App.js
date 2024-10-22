@@ -45,52 +45,46 @@ const App = () => {
   const [errors, setErrors] = useState({});
 
   useEffect(() => {
-    const fetchAssignments = async () => {
-        try {
-            const response = await axiosInstance.get(`https://hrms-application-oxy0.onrender.com/hrmsapplication/assignments/getAssignments/${projectCode}`);
-            setSelectedFields(response.data);
-            const formattedRows = response.data.map(item => ({
-                id: item.id,
-                employeeId: item.employeeId,
-                employeeName: item.employeeName,
-                employeeDesignation: item.employeeDesignation,
-                projectCode: item.projectCode,
-                startDate: item.startDate,
-                endDate: item.endDate,
-                shiftStartTime: item.shiftStartTime,
-                shiftEndTime: item.shiftEndTime,
-                comments: item.comments,
-            }));
-            setRows(formattedRows);
-        } catch (error) {
-            console.error('Error fetching assignments:', error.message);
-            alert('Failed to fetch assignments. Please check your network connection and try again.');
-        }
-    };
-
-    fetchAssignments();
-
-    const urlParams = new URLSearchParams(window.location.search);
-    const fieldsParam = urlParams.get('fields');
-    const projectCode = urlParams.get('projectCode');
-
+    const fieldsParam = new URLSearchParams(window.location.search).get('fields');
     if (fieldsParam) {
-        const selectedFieldNames = fieldsParam.split(',');
-        const newSelectedFields = defaultFields.filter(field => selectedFieldNames.includes(field.name));
-        setSelectedFields(newSelectedFields);
-        setFields(newSelectedFields);
+      const selectedFieldNames = fieldsParam.split(',');
+      const newSelectedFields = defaultFields.filter(field => selectedFieldNames.includes(field.name));
+      setSelectedFields(newSelectedFields);
+      setFields(newSelectedFields);
     }
-
-    // Pre-fill the project code if available
-    if (projectCode) {
-        setTempFormData(prevData => {
-            const updatedData = [...prevData];
-            const projectCodeIndex = defaultFields.findIndex(field => field.name === 'projectCode');
-            updatedData[projectCodeIndex] = projectCode; // Set project code
-            return updatedData;
-        });
-    }
-}, []);
+  
+    const fetchAssignments = async () => {
+      const projectCode = new URLSearchParams(window.location.search).get('projectCode'); // Move this line here
+      if (!projectCode) {
+        alert("Project Code is missing in the URL.");
+        return;
+      }
+  
+      try {
+        const response = await axiosInstance.get(`https://hrms-application-oxy0.onrender.com/hrmsapplication/assignments/getAssignments/${projectCode}`);
+        setRows(response.data);
+        const formattedRows = response.data.map(item => ({
+          id: item.id,
+          employeeId: item.employeeId,
+          employeeName: item.employeeName,
+          employeeDesignation: item.employeeDesignation,
+          projectCode: item.projectCode,
+          startDate: item.startDate,
+          endDate: item.endDate,
+          shiftStartTime: item.shiftStartTime,
+          shiftEndTime: item.shiftEndTime,
+          comments: item.comments,
+        }));
+        setRows(formattedRows);
+      } catch (error) {
+        console.error('Error fetching assignments:', error.message);
+        alert('Failed to fetch assignments. Please check your network connection and try again.');
+      }
+    };
+  
+    fetchAssignments();
+  }, []);
+  
 
 
   const handleModalToggle = () => setIsOpen(prev => !prev);
@@ -136,48 +130,51 @@ const App = () => {
 
   const handleRowSave = async () => {
     if (validateFields()) {
-      const newRow = tempFormData.reduce((acc, val, i) => ({ ...acc, [fields[i].name]: val }), {});
+        const newRow = tempFormData.reduce((acc, val, i) => ({ ...acc, [fields[i].name]: val }), {});
 
-      try {
-        let response;
+        try {
+            let response;
 
-        if (editIndex !== null) {
-          const updateData = { id: rows[editIndex].id, ...newRow };
-          console.log("Updating row with data:", updateData);
-          response = await axiosInstance.patch(
-            `https://hrms-application-oxy0.onrender.com/hrmsapplication/assignments/update`,
-            updateData
-          );
+            if (editIndex !== null) {
+                const updateData = { id: rows[editIndex].id, ...newRow };
+                console.log("Updating row with data:", updateData);
+                response = await axiosInstance.patch(
+                    `https://hrms-application-oxy0.onrender.com/hrmsapplication/assignments/update`,
+                    updateData
+                );
 
-          console.log("PATCH Response Data:", response.data);
+                console.log("PATCH Response Data:", response.data);
 
-          setRows(prev => {
-            const updatedRows = [...prev];
-            updatedRows[editIndex] = { ...updatedRows[editIndex], ...newRow }; 
-            return updatedRows;
-          });
-        } else {
-          response = await axiosInstance.post(
-            'https://hrms-application-oxy0.onrender.com/hrmsapplication/assignments/create',
-            newRow
-          );
+                // Update rows with the edited data
+                setRows(prev => {
+                    const updatedRows = [...prev];
+                    updatedRows[editIndex] = { ...updatedRows[editIndex], ...newRow }; 
+                    return updatedRows;
+                });
+            } else {
+                response = await axiosInstance.post(
+                    'https://hrms-application-oxy0.onrender.com/hrmsapplication/assignments/create',
+                    newRow
+                );
 
-          console.log("POST Response Data:", response.data);
-          setRows(prev => [...prev, { ...newRow, id: response.data.id }]);
+                console.log("POST Response Data:", response.data);
+                // Append the new row to the existing rows
+                setRows(prev => [...prev, { ...newRow, id: response.data.id }]);
+            }
+
+            setTempFormData(new Array(fields.length).fill(''));
+            handleHelloPopupToggle();
+        } catch (error) {
+            const errorMessage = error.response?.data?.message || "There was an error saving the row. Please try again.";
+            console.error("Error saving assignment:", errorMessage);
+            alert(errorMessage);
         }
-
-        setTempFormData(new Array(fields.length).fill(''));
-        handleHelloPopupToggle();
-      } catch (error) {
-        const errorMessage = error.response?.data?.message || "There was an error saving the row. Please try again.";
-        console.error("Error saving assignment:", errorMessage);
-        alert(errorMessage);
-      }
     } else {
-      console.log("Field validation failed.");
-      alert("Please fill in all required fields correctly.");
+        console.log("Field validation failed.");
+        alert("Please fill in all required fields correctly.");
     }
-  };
+};
+
 
   const handleRowDelete = async (rowIndex) => {
     const id = rows[rowIndex].id; 
